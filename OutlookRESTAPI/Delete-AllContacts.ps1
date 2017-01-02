@@ -94,7 +94,7 @@ function Get-RESTApi {
 function Get-Authenticate {
   Add-Type -AssemblyName System.Web
   $client_id = "d2a2b164-c156-4f9b-8dc4-c6ebe9f97177"
-  $redirectUrl = "https://raw.githubusercontent.com/alatas/HackerRank/master/README.md"
+  $redirectUrl = "https://raw.githubusercontent.com/alatas/OutlookRESTAPI/master/README.md"
 
   $state = [guid]::NewGuid()
 
