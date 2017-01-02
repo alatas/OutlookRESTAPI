@@ -1,7 +1,7 @@
 ﻿
 <#PSScriptInfo
 
-.VERSION 1.0.0.0
+.VERSION 1.0.0.1
 
 .GUID b798c22f-a96e-4d13-b034-48c1faa211b3
 
@@ -15,7 +15,7 @@
 
 .LICENSEURI 
 
-.PROJECTURI 
+.PROJECTURI https://github.com/alatas/OutlookRESTAPI/
 
 .ICONURI 
 
