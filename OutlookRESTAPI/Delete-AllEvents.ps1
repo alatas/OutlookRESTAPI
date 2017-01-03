@@ -1,9 +1,9 @@
 ﻿
 <#PSScriptInfo
 
-.VERSION 1.0.0.2
+.VERSION 1.0.0.0
 
-.GUID b798c22f-a96e-4d13-b034-48c1faa211b3
+.GUID e2dfffdf-d767-4fce-9dca-238cbc44e22b
 
 .AUTHOR Sukru Alatas
 
@@ -33,7 +33,7 @@
 <# 
 
 .DESCRIPTION 
- Deletes all the outlook.com contacts in the folder that the user selects from the listed contacts folders. 
+ Deletes all the outlook.com events in the calendar that the user selects from the listed calendar. 
 
 #> 
 Param()
@@ -102,7 +102,7 @@ function Get-Authenticate {
   "?response_type=token" +
   "&redirect_uri=" + [System.Web.HttpUtility]::UrlEncode($redirectUrl) +
   "&client_id=$client_id" +
-  "&scope=" + [System.Web.HttpUtility]::UrlEncode("https://outlook.office.com/contacts.readwrite") + 
+  "&scope=" + [System.Web.HttpUtility]::UrlEncode("https://outlook.office.com/calendars.readwrite") + 
   "&promt=login" +
   "&state=" + $state
 
@@ -111,7 +111,7 @@ function Get-Authenticate {
     if ($script:Authorization -ne $null) {
       break
     } else {
-      if (1 -eq (Get-Menu -Title "Outlook Contacts Cleaner" `
+      if (1 -eq (Get-Menu -Title "Outlook Events Cleaner" `
              -Desc "Script cannot get token for authorization. Do you want to try again ?" `
              -Default 0 -Options "&Try Again","&Exit") `
         ) { exit }
@@ -131,43 +131,33 @@ function Get-Menu {
   return $host.UI.PromptForChoice($Title,$Desc,$Options,$Default)
 }
 
-if (1 -eq (Get-Menu -Title "Outlook Contacts Cleaner" `
-       -Desc "This script will authorize with your live.com / outlook.com account, search and delete all of your contacts." `
+if (1 -eq (Get-Menu -Title "Outlook Events Cleaner" `
+       -Desc "This script will authorize with your live.com / outlook.com account, search and delete all of calendar events." `
        -Default 0 -Options "&Continue","&Exit") `
   ) { exit }
 
-echo "Now script is opening an authentication web page for authorize to read your contacts information"
+echo "Now script is opening an authentication web page for authorize to read your calendar information"
 
 Get-Authenticate
 
-echo "Authentication is successful, fetching contacts information"
+echo "Authentication is successful, fetching calendar information"
 
-$contactsFolder = Get-RESTApi -Func me/contactfolders/Contacts
+$rootFolders = Get-RESTApi -Func me/calendars | select -ExpandProperty value
 
-$rootFolders = Get-RESTApi -Func me/contactfolders/$($contactsFolder.ParentFolderId)/childfolders | select -ExpandProperty value
-
-foreach ($folder in $rootFolders) {
-  [int]$count = ((Get-RESTApi -Func me/contactfolders/$($folder.Id)/contacts/$('$count')) -ireplace '[^0-9]','')
-
-  Add-Member -InputObject $folder -NotePropertyName Count -NotePropertyValue $count
-  Add-Member -InputObject $folder -NotePropertyName Name -NotePropertyValue $('&' + $folder.DisplayName + ' (' + $folder.Count + ' contacts)')
-
-}
-
-$selection = Get-Menu -Title "Select Contacts Folder" -Desc "Please select contacts folder you want to clean. All of the contacts in that folder will be deleted" -Options $($rootFolders | select -ExpandProperty Name)
+$selection = Get-Menu -Title "Select Calendar" -Desc "Please select calendar you want to clean. All of the events in that calendar will be deleted" -Options $($rootFolders | select -ExpandProperty Name)
 
 $selectedFolder = $rootFolders[$selection]
 
-if (1 -eq (Get-Menu -Title "Confirmation" -Desc "All of the contacts in $($selectedFolder.DisplayName) Folder will be DELETED. THIS OPERATION ISNOT REVERSIBLE. ARE YOU SURE?" -Options "&No","&YES" -Default 0)) {
+if (1 -eq (Get-Menu -Title "Confirmation" -Desc "All of the events in $($selectedFolder.Name) will be DELETED. THIS OPERATION ISNOT REVERSIBLE. ARE YOU SURE?" -Options "&No","&YES" -Default 0)) {
 
   while ($true) {
-    $contacts = (Get-RESTApi -Func me/contactfolders/$($selectedFolder.Id)/contacts).value
+    $events = (Get-RESTApi -Func me/calendars/$($selectedFolder.Id)/events).value
 
-    if (@( $contacts).Count -gt 0) {
+    if (@( $events).Count -gt 0) {
 
-      foreach ($contact in $contacts) {
-        echo "Deleting $($contact.FileAs)..."
-        Get-RESTApi -Method DELETE -Func me/contacts/$($contact.Id)
+      foreach ($event in $events) {
+        echo "Deleting $($event.Subject)..."
+        Get-RESTApi -Method DELETE -Func me/events/$($event.Id)
       }
 
     } else {
